@@ -1,0 +1,15 @@
+2025/04/03-21:10:39.844 8307 Reusing MANIFEST /Volumes/Data/Projects/Jumpstart/WWAConnect/userDataDir/local/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/04/03-21:10:39.845 8307 Recovering log #174
+2025/04/03-21:10:39.879 8307 Reusing old log /Volumes/Data/Projects/Jumpstart/WWAConnect/userDataDir/local/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/000174.log 
+2025/04/03-21:10:40.918 b003 Level-0 table #180: started
+2025/04/03-21:10:40.960 b003 Level-0 table #180: 935621 bytes OK
+2025/04/03-21:10:40.980 b003 Delete type=0 #174
+2025/04/03-21:10:40.982 a703 Manual compaction at level-0 from '\x00C\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00D\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/04/03-21:10:42.845 a703 Compacting 1@1 + 2@2 files
+2025/04/03-21:10:42.955 a703 Generated table #181@1: 44509 keys, 2225328 bytes
+2025/04/03-21:10:43.051 a703 Generated table #182@1: 28982 keys, 855376 bytes
+2025/04/03-21:10:43.051 a703 Compacted 1@1 + 2@2 files => 3080704 bytes
+2025/04/03-21:10:43.086 a703 compacted to: files[ 0 0 2 0 0 0 0 ]
+2025/04/03-21:10:43.087 a703 Delete type=2 #176
+2025/04/03-21:10:43.087 a703 Delete type=2 #177
+2025/04/03-21:10:43.087 a703 Delete type=2 #180

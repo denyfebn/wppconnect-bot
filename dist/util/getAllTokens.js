@@ -1,0 +1,34 @@
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = getAllTokens;
+var _factory = _interopRequireDefault(require("./tokenStore/factory"));
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
+/*
+ * Copyright 2021 WPPConnect Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+async function getAllTokens(req) {
+  const tokenStore = new _factory.default();
+  const myTokenStore = tokenStore.createTokenStory(null);
+  try {
+    return await myTokenStore.listTokens();
+  } catch (e) {
+    req.logger.error(e);
+  }
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJfZmFjdG9yeSIsIl9pbnRlcm9wUmVxdWlyZURlZmF1bHQiLCJyZXF1aXJlIiwiZSIsIl9fZXNNb2R1bGUiLCJkZWZhdWx0IiwiZ2V0QWxsVG9rZW5zIiwicmVxIiwidG9rZW5TdG9yZSIsIkZhY3RvcnkiLCJteVRva2VuU3RvcmUiLCJjcmVhdGVUb2tlblN0b3J5IiwibGlzdFRva2VucyIsImxvZ2dlciIsImVycm9yIl0sInNvdXJjZXMiOlsiLi4vLi4vc3JjL3V0aWwvZ2V0QWxsVG9rZW5zLnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qXG4gKiBDb3B5cmlnaHQgMjAyMSBXUFBDb25uZWN0IFRlYW1cbiAqXG4gKiBMaWNlbnNlZCB1bmRlciB0aGUgQXBhY2hlIExpY2Vuc2UsIFZlcnNpb24gMi4wICh0aGUgXCJMaWNlbnNlXCIpO1xuICogeW91IG1heSBub3QgdXNlIHRoaXMgZmlsZSBleGNlcHQgaW4gY29tcGxpYW5jZSB3aXRoIHRoZSBMaWNlbnNlLlxuICogWW91IG1heSBvYnRhaW4gYSBjb3B5IG9mIHRoZSBMaWNlbnNlIGF0XG4gKlxuICogICAgIGh0dHA6Ly93d3cuYXBhY2hlLm9yZy9saWNlbnNlcy9MSUNFTlNFLTIuMFxuICpcbiAqIFVubGVzcyByZXF1aXJlZCBieSBhcHBsaWNhYmxlIGxhdyBvciBhZ3JlZWQgdG8gaW4gd3JpdGluZywgc29mdHdhcmVcbiAqIGRpc3RyaWJ1dGVkIHVuZGVyIHRoZSBMaWNlbnNlIGlzIGRpc3RyaWJ1dGVkIG9uIGFuIFwiQVMgSVNcIiBCQVNJUyxcbiAqIFdJVEhPVVQgV0FSUkFOVElFUyBPUiBDT05ESVRJT05TIE9GIEFOWSBLSU5ELCBlaXRoZXIgZXhwcmVzcyBvciBpbXBsaWVkLlxuICogU2VlIHRoZSBMaWNlbnNlIGZvciB0aGUgc3BlY2lmaWMgbGFuZ3VhZ2UgZ292ZXJuaW5nIHBlcm1pc3Npb25zIGFuZFxuICogbGltaXRhdGlvbnMgdW5kZXIgdGhlIExpY2Vuc2UuXG4gKi9cbmltcG9ydCBGYWN0b3J5IGZyb20gJy4vdG9rZW5TdG9yZS9mYWN0b3J5JztcblxuZXhwb3J0IGRlZmF1bHQgYXN5bmMgZnVuY3Rpb24gZ2V0QWxsVG9rZW5zKHJlcTogYW55KSB7XG4gIGNvbnN0IHRva2VuU3RvcmUgPSBuZXcgRmFjdG9yeSgpO1xuICBjb25zdCBteVRva2VuU3RvcmUgPSB0b2tlblN0b3JlLmNyZWF0ZVRva2VuU3RvcnkobnVsbCk7XG4gIHRyeSB7XG4gICAgcmV0dXJuIGF3YWl0IG15VG9rZW5TdG9yZS5saXN0VG9rZW5zKCk7XG4gIH0gY2F0Y2ggKGUpIHtcbiAgICByZXEubG9nZ2VyLmVycm9yKGUpO1xuICB9XG59XG4iXSwibWFwcGluZ3MiOiI7Ozs7OztBQWVBLElBQUFBLFFBQUEsR0FBQUMsc0JBQUEsQ0FBQUMsT0FBQTtBQUEyQyxTQUFBRCx1QkFBQUUsQ0FBQSxXQUFBQSxDQUFBLElBQUFBLENBQUEsQ0FBQUMsVUFBQSxHQUFBRCxDQUFBLEtBQUFFLE9BQUEsRUFBQUYsQ0FBQTtBQWYzQztBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7O0FBR2UsZUFBZUcsWUFBWUEsQ0FBQ0MsR0FBUSxFQUFFO0VBQ25ELE1BQU1DLFVBQVUsR0FBRyxJQUFJQyxnQkFBTyxDQUFDLENBQUM7RUFDaEMsTUFBTUMsWUFBWSxHQUFHRixVQUFVLENBQUNHLGdCQUFnQixDQUFDLElBQUksQ0FBQztFQUN0RCxJQUFJO0lBQ0YsT0FBTyxNQUFNRCxZQUFZLENBQUNFLFVBQVUsQ0FBQyxDQUFDO0VBQ3hDLENBQUMsQ0FBQyxPQUFPVCxDQUFDLEVBQUU7SUFDVkksR0FBRyxDQUFDTSxNQUFNLENBQUNDLEtBQUssQ0FBQ1gsQ0FBQyxDQUFDO0VBQ3JCO0FBQ0YiLCJpZ25vcmVMaXN0IjpbXX0=

@@ -1,0 +1,6 @@
+2025/04/03-21:20:30.879 3703 Reusing MANIFEST /Volumes/Data/Projects/Jumpstart/WWAConnect/userDataDir/local/Default/Local Storage/leveldb/MANIFEST-000001
+2025/04/03-21:20:30.888 3703 Recovering log #7
+2025/04/03-21:20:30.890 3703 Reusing old log /Volumes/Data/Projects/Jumpstart/WWAConnect/userDataDir/local/Default/Local Storage/leveldb/000007.log 
+2025/04/03-21:56:32.431 3703 Level-0 table #11: started
+2025/04/03-21:56:32.447 3703 Level-0 table #11: 12584 bytes OK
+2025/04/03-21:56:32.470 3703 Delete type=0 #7
