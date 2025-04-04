@@ -20,7 +20,7 @@ const GROUPS = {
 };
 
 const TARGET_NUMBERS = ["628986811367@c.us", "6281324276676@c.us"];
-const FORCE_MENTION_NUMBERS = ["6281312389100",];
+const FORCE_MENTION_NUMBERS = ["6281312389100","6281321271990","62811224653","6281324276676"];
 
 let processedMessages = loadProcessedMessages();
 let currentDay = getTodayDate();
@@ -105,7 +105,7 @@ function getReactionBasedOnResponse(message) {
 
   const patterns = {
     "❓": [/\* Tidak Ditemukan\*/i, /\*Info Tidak Diproses\*/i, /\*Tidak Ada Keterangan\*/i],
-    "✅": [/\*Diterima, Noted\*/i, /\*Schedule visit ulang\*/i, /\*Waiting List\*/i],
+    "✅": [/\*Noted\*/i, /\*Schedule visit ulang\*/i, /\*Waiting List\*/i],
     "👀": [/\*BOT Error\*/i, /Sekretaris sedang memproses/i],
   };
 
@@ -220,17 +220,36 @@ async function checkGroupMessages(groupName, groupId) {
 
         const gasMessage = gasResponse.data?.data?.[0]?.message || "❌ Server Overtime";
 
-        const shouldAppendFYI = /\*Noted\*/i.test(gasMessage);
+      const shouldAppendFYI = /\*Noted\*/i.test(gasMessage);
 
-        const mentionedJids = shouldAppendFYI
-          ? FORCE_MENTION_NUMBERS.filter(
-              (nomor) => nomor !== senderNumber && !messageContent.includes(`@${nomor}`)
-            ).map((nomor) => `${nomor}@c.us`)
-          : [];
+      let groupMembers = [];
+      try {
+        const groupMembersResp = await axios.get(
+          `${WPP_SERVER_URL}/${SESSION_NAME}/group-members/${formattedGroupId}`,
+          { headers: HEADERS }
+        );
+        groupMembers = groupMembersResp.data?.response || [];
+        console.log("✅ Members in group:", groupMembers.map((m) => m.id?._serialized));
+      } catch (err) {
+        console.warn("⚠️ Gagal ambil member grup:", err.message);
+      }
 
-        const mentionText = mentionedJids.length > 0
-          ? `FYI ${mentionedJids.map(j => `@${j.replace("@c.us", "")}`).join(" ")}`
-          : "";
+      const mentionedJids = shouldAppendFYI
+        ? FORCE_MENTION_NUMBERS.filter((nomor) => {
+            const jid = `${nomor}@c.us`;
+            return (
+              nomor !== senderNumber &&
+              !messageContent.includes(`@${nomor}`) &&
+              groupMembers.some((m) => m.id?._serialized === jid)
+            );
+          }).map((nomor) => `${nomor}@c.us`)
+        : [];
+
+      const mentionText = mentionedJids.length > 0
+        ? `FYI ${mentionedJids.map((j) => `@${j.replace("@c.us", "")}`).join(" ")}`
+        : "";
+
+      console.log("📣 Final mentioned JIDs:", mentionedJids);
 
         const finalMessage = [gasMessage, mentionText].filter(Boolean).join("\n");
 

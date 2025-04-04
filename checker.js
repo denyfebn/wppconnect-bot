@@ -3,11 +3,10 @@ const { exec } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
-const SESSION_NAME = "jsai";
-const GOOGLE_APPS_SCRIPT_URL = "blabla";
+const SESSION_NAME = "local";
 const PROCESSED_FILE = path.join(__dirname, "processedMessages.json");
 const WPP_SERVER_URL = "http://localhost:21465/api";
-const AUTH_TOKEN = "ddddddd";
+const AUTH_TOKEN = "$2b$10$nOy3N8HZiAfUhjSyDlV0Ee_Eih6J1KJ4RcbP8F7De1iAyLIN8T2Hy";
 
 const HEADERS = {
     "Accept": "application/json",
@@ -54,9 +53,9 @@ function checkWaBotStatus() {
     const now = Date.now();
     const timeDiff = (now - lastMessageReceivedTime) / 1000; // dalam detik
 
-    if (timeDiff > 30) {
-        console.error("⚠️ Tidak ada pesan masuk selama 30 detik. Restarting wa-bot...");
-        restartPm2Service("wa-bot");
+    if (timeDiff > 60) {
+        console.error("⚠️ Tidak ada pesan masuk selama 30 detik. Restarting worker...");
+        restartPm2Service("worker");
         lastMessageReceivedTime = Date.now(); // Reset waktu setelah restart
     }
 }
