@@ -183,7 +183,7 @@ async function checkGroupMessages(groupName, groupId) {
       );
 
       const shouldProcess =
-      senderName !== "denyfebn"
+      senderName !== "denyFebn"
         ? isMentioned
         : messageContent?.includes("cek hari ini") ||
           messageContent?.startsWith("done") ||
@@ -265,7 +265,7 @@ async function checkGroupMessages(groupName, groupId) {
         );
 
         const finalReaction =
-          senderName === "denyfebn" ? "☕️" : getReactionBasedOnResponse(gasMessage);
+          senderName === "denyFebn" ? "☕️" : getReactionBasedOnResponse(gasMessage);
 
         await reactToMessage(message.id, finalReaction);
       } catch (error) {
