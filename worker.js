@@ -22,6 +22,28 @@ const GROUPS = {
 const TARGET_NUMBERS = ["628986811367@c.us", "6281324276676@c.us"];
 const FORCE_MENTION_NUMBERS = ["6281312389100","6281321271990","62811224653","6281324276676"];
 
+const CONFIG_FILE = path.join(__dirname, "configWorker.json");
+
+function loadConfig() {
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      return JSON.parse(fs.readFileSync(CONFIG_FILE, "utf8"));
+    }
+  } catch (error) {
+    console.error("❌ Gagal memuat config:", error.message);
+  }
+  // Default config: mode open
+  return { denyFebnOpen: true };
+}
+
+function saveConfig(config) {
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+}
+
+// Inisialisasi config
+let config = loadConfig();
+let denyFebnOpen = config.denyFebnOpen;
+
 let processedMessages = loadProcessedMessages();
 let currentDay = getTodayDate();
 
@@ -162,6 +184,9 @@ async function checkGroupMessages(groupName, groupId) {
     }
 
     for (const message of messages) {
+      // Mulai hitung waktu processing untuk tiap pesan
+      const messageStartTime = Date.now();
+
       const messageDate = timestampToDate(message.timestamp);
       if (messageDate !== today) continue;
       if (processedMessages[today].has(message.id)) continue;
@@ -176,82 +201,181 @@ async function checkGroupMessages(groupName, groupId) {
       const senderName = message.sender?.pushname || "Unknown";
       const senderNumber = message.sender?.id?.user || "";
 
+      // Bila pesan yang isinya hanya command "/open" atau "/closed",
+      // dan yang kirim bukan "denyFebn", maka abaikan pesan ini.
+      const trimmedCmd = messageContent.trim().toLowerCase();
+      if ((trimmedCmd === "/open" || trimmedCmd === "/closed") && senderName !== "denyFebn") {
+        processedMessages[today].add(message.id);
+        saveProcessedMessages();
+        continue;
+      }
+
       const isMentioned = TARGET_NUMBERS.some(
         (num) =>
           message.body?.includes(`@${num.split("@")[0]}`) ||
           message.mentionedJidList?.some((m) => TARGET_NUMBERS.includes(m._serialized))
       );
 
-      const shouldProcess =
-      senderName !== "denyFebn"
-        ? isMentioned
-        : messageContent?.includes("cek hari ini") ||
-          messageContent?.startsWith("done") ||
-          /^\d{5}/.test(messageContent);
+      // Command handling khusus dari "denyFebn"
+      if (senderName === "denyFebn") {
+        if (trimmedCmd === "#closed") {
+          config.denyFebnOpen = false;
+          denyFebnOpen = false;
+          saveConfig(config);
+          let formattedGroupId = groupId;
+          if (!formattedGroupId.endsWith("@g.us")) {
+            formattedGroupId = `${formattedGroupId}@g.us`;
+          }
+          // Hitung waktu command
+          const commandProcessingTime = ((Date.now() - messageStartTime) / 1000).toFixed(1);
+          await axios.post(
+            `${WPP_SERVER_URL}/${SESSION_NAME}/send-mentioned-reply`,
+            {
+              phone: formattedGroupId,
+              isGroup: true,
+              message:
+                "Mode closed diaktifkan. Laporan tidak akan diproses.\n> " +
+                commandProcessingTime +
+                " s waktu bot dibutuhkan",
+            },
+            { headers: HEADERS }
+          );
+          await sendTyping(formattedGroupId, true, false);
+          processedMessages[today].add(message.id);
+          saveProcessedMessages();
+          continue; // skip pemrosesan lebih lanjut
+        } else if (trimmedCmd === "#open") {
+          config.denyFebnOpen = true;
+          denyFebnOpen = true;
+          saveConfig(config);
+          let formattedGroupId = groupId;
+          if (!formattedGroupId.endsWith("@g.us")) {
+            formattedGroupId = `${formattedGroupId}@g.us`;
+          }
+          const commandProcessingTime = ((Date.now() - messageStartTime) / 1000).toFixed(1);
+          await axios.post(
+            `${WPP_SERVER_URL}/${SESSION_NAME}/send-mentioned-reply`,
+            {
+              phone: formattedGroupId,
+              isGroup: true,
+              message:
+                "Mode open diaktifkan. Laporan akan diproses seperti biasa.\n> " +
+                commandProcessingTime +
+                " s waktu bot dibutuhkan",
+            },
+            { headers: HEADERS }
+          );
+          await sendTyping(formattedGroupId, true, false);
+          processedMessages[today].add(message.id);
+          saveProcessedMessages();
+          continue; // skip pemrosesan lebih lanjut
+        }
+      }
 
-      if (!shouldProcess) continue;    
+      // Untuk pesan non-command, tentukan apakah perlu diproses
+      const shouldProcess =
+        senderName !== "denyFebn"
+          ? isMentioned
+          : messageContent?.includes("cek hari ini") ||
+            messageContent?.startsWith("done") ||
+            /^\d{5}/.test(messageContent);
+      if (!shouldProcess) continue;
 
       processedMessages[today].add(message.id);
       saveProcessedMessages();
 
       let formattedGroupId = groupId;
+      if (!formattedGroupId.endsWith("@g.us")) {
+        formattedGroupId = `${formattedGroupId}@g.us`;
+      }
+      let chatId = formattedGroupId;
       try {
-        if (!formattedGroupId.endsWith("@g.us")) {
-          formattedGroupId = `${formattedGroupId}@g.us`;
-        }
-
-        const initialReaction = senderName === "denyfebn" ? "🫡" : "⏳";
+        const initialReaction = senderName === "denyFebn" ? "🫡" : "⏳";
         await reactToMessage(message.id, initialReaction);
 
-        await sendTyping(groupId, true, true);
-
-        const gasResponse = await axios.post(
-          GOOGLE_APPS_SCRIPT_URL,
-          {
-            sender: senderName,
-            message: messageContent,
-            group: groupName,
-            type: message.type,
-          },
-          { headers: { "Content-Type": "application/json" } }
-        );
-
-        await sendTyping(formattedGroupId, true, false);
-
-        const gasMessage = gasResponse.data?.data?.[0]?.message || "❌ Server Overtime";
-
-      const shouldAppendFYI = /\*Noted\*/i.test(gasMessage);
-
-      let groupMembers = [];
-      try {
-        const groupMembersResp = await axios.get(
-          `${WPP_SERVER_URL}/${SESSION_NAME}/group-members/${formattedGroupId}`,
-          { headers: HEADERS }
-        );
-        groupMembers = groupMembersResp.data?.response || [];
-        console.log("✅ Members in group:", groupMembers.map((m) => m.id?._serialized));
-      } catch (err) {
-        console.warn("⚠️ Gagal ambil member grup:", err.message);
-      }
-
-      const mentionedJids = shouldAppendFYI
-        ? FORCE_MENTION_NUMBERS.filter((nomor) => {
-            const jid = `${nomor}@c.us`;
-            return (
-              nomor !== senderNumber &&
-              !messageContent.includes(`@${nomor}`) &&
-              groupMembers.some((m) => m.id?._serialized === jid)
+        // Mulai typing; pastikan stop typing ter-eksekusi via try-finally
+        await sendTyping(chatId, true, true);
+        let gasMessage;
+        try {
+          if (!denyFebnOpen) {
+            // Mode closed aktif
+            if (senderName !== "denyFebn") {
+              // Semua pesan dari non-denyFebn di-bypass
+              if (/\b\d{5}\b/.test(messageContent)) {
+                gasMessage = "*CLOSED* \n> Laporan tidak diproses karena Gform oriented. \n> Input by BOT sementara dimatikan sampai waktu yang belum ditentukan.";
+              } else {
+                await reactToMessage(message.id, "👀");
+                continue;
+              }
+            } else {
+              // Jika sender adalah denyFebn, cek apakah pesan mengandung "cek hari ini" atau diawali "done"
+              const lowerMsg = messageContent.toLowerCase();
+              if (lowerMsg.includes("cek hari ini") || lowerMsg.startsWith("done")) {
+                const gasResponse = await axios.post(
+                  GOOGLE_APPS_SCRIPT_URL,
+                  {
+                    sender: senderName,
+                    message: messageContent,
+                    group: groupName,
+                    type: message.type,
+                  },
+                  { headers: { "Content-Type": "application/json" } }
+                );
+                gasMessage = gasResponse.data?.data?.[0]?.message || "❌ Server Overtime";
+              } else {
+                continue;
+              }
+            }
+          } else {
+            // Mode open aktif → proses GAS normal untuk semua sender
+            const gasResponse = await axios.post(
+              GOOGLE_APPS_SCRIPT_URL,
+              {
+                sender: senderName,
+                message: messageContent,
+                group: groupName,
+                type: message.type,
+              },
+              { headers: { "Content-Type": "application/json" } }
             );
-          }).map((nomor) => `${nomor}@c.us`)
-        : [];
+            gasMessage = gasResponse.data?.data?.[0]?.message || "❌ Server Overtime";
+          }
+        } finally {
+          await sendTyping(chatId, true, false);
+        }
 
-      const mentionText = mentionedJids.length > 0
-        ? `FYI ${mentionedJids.map((j) => `@${j.replace("@c.us", "")}`).join(" ")}`
-        : "";
+        let groupMembers = [];
+        try {
+          const groupMembersResp = await axios.get(
+            `${WPP_SERVER_URL}/${SESSION_NAME}/group-members/${formattedGroupId}`,
+            { headers: HEADERS }
+          );
+          groupMembers = groupMembersResp.data?.response || [];
+          console.log("✅ Members in group:", groupMembers.map((m) => m.id?._serialized));
+        } catch (err) {
+          console.warn("⚠️ Gagal ambil member grup:", err.message);
+        }
 
-      console.log("📣 Final mentioned JIDs:", mentionedJids);
+        const shouldAppendFYI = /\*Noted\*/i.test(gasMessage);
+        const mentionedJids = shouldAppendFYI
+          ? FORCE_MENTION_NUMBERS.filter((nomor) => {
+              const jid = `${nomor}@c.us`;
+              return (
+                nomor !== senderNumber &&
+                !messageContent.includes(`@${nomor}`) &&
+                groupMembers.some((m) => m.id?._serialized === jid)
+              );
+            }).map((nomor) => `${nomor}@c.us`)
+          : [];
+        const mentionText =
+          mentionedJids.length > 0
+            ? `FYI ${mentionedJids.map((j) => `@${j.replace("@c.us", "")}`).join(" ")}`
+            : "";
+        let finalMessage = [gasMessage, mentionText].filter(Boolean).join("\n");
 
-        const finalMessage = [gasMessage, mentionText].filter(Boolean).join("\n");
+        // Hitung waktu processing pesan (dalam detik)
+        const processingTime = ((Date.now() - messageStartTime) / 1000).toFixed(1);
+        finalMessage = finalMessage + "\n> " + processingTime + " s waktu bot dibutuhkan";
 
         await axios.post(
           `${WPP_SERVER_URL}/${SESSION_NAME}/send-mentioned-reply`,
@@ -264,14 +388,29 @@ async function checkGroupMessages(groupName, groupId) {
           { headers: HEADERS }
         );
 
-        const finalReaction =
-          senderName === "denyFebn" ? "☕️" : getReactionBasedOnResponse(gasMessage);
-
-        await reactToMessage(message.id, finalReaction);
+        if (!denyFebnOpen && senderName !== "denyFebn" && /\b\d{5}\b/.test(messageContent)) {
+          await reactToMessage(message.id, "❌");
+        } else {
+          const finalReaction = senderName === "denyFebn" ? "☕️" : getReactionBasedOnResponse(gasMessage);
+          await reactToMessage(message.id, finalReaction);
+        }
       } catch (error) {
         await sendTyping(formattedGroupId, true, false);
         await reactToMessage(message.id, "❌");
-        console.error(`❌ Gagal memproses pesan: ${error.message}`);
+        // Hitung waktu processing error
+        const errorProcessingTime = ((Date.now() - messageStartTime) / 1000).toFixed(1);
+        console.error(`❌ Gagal memproses pesan: ${error.message} (${errorProcessingTime} s)`);
+        // Kalau perlu, lo juga bisa mengirim pesan error ke grup:
+        await axios.post(
+          `${WPP_SERVER_URL}/${SESSION_NAME}/send-mentioned-reply`,
+          {
+            phone: formattedGroupId,
+            isGroup: true,
+            message: `❌ Gagal memproses pesan: ${error.message}\n> ${errorProcessingTime} s waktu bot dibutuhkan`,
+            messageId: message.id,
+          },
+          { headers: HEADERS }
+        );
         processedMessages[today].delete(message.id);
         saveProcessedMessages();
       }
@@ -280,6 +419,8 @@ async function checkGroupMessages(groupName, groupId) {
     console.error(`❌ Gagal ambil pesan: ${error.message}`);
   }
 }
+
+
 
 setInterval(async () => {
   const today = getTodayDate();
