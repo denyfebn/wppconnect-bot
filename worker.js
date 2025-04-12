@@ -201,10 +201,10 @@ async function checkGroupMessages(groupName, groupId) {
       const senderName = message.sender?.pushname || "Unknown";
       const senderNumber = message.sender?.id?.user || "";
 
-      // Bila pesan yang isinya hanya command "/open" atau "/closed",
+      // Bila pesan yang isinya hanya command "#open" atau "#closed",
       // dan yang kirim bukan "denyFebn", maka abaikan pesan ini.
       const trimmedCmd = messageContent.trim().toLowerCase();
-      if ((trimmedCmd === "/open" || trimmedCmd === "/closed") && senderName !== "denyFebn") {
+      if ((trimmedCmd === "#open" || trimmedCmd === "#closed") && senderName !== "denyFebn") {
         processedMessages[today].add(message.id);
         saveProcessedMessages();
         continue;
