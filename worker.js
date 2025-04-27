@@ -198,7 +198,7 @@ async function checkGroupMessages(groupName, groupId) {
         messageContent = message.body;
       }
 
-      const senderName = message.sender?.pushname || "Unknown";
+      const senderName = message.sender?.name || "Unknown";
       const senderNumber = message.sender?.id?.user || "";
 
       // Bila pesan yang isinya hanya command "#open" atau "#closed",
