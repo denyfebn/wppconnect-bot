@@ -127,7 +127,8 @@ function getReactionBasedOnResponse(message) {
 
   const patterns = {
     "❓": [/\* Tidak Ditemukan\*/i, /\*Info Tidak Diproses\*/i, /\*Tidak Ada Keterangan\*/i],
-    "✅": [/\*Noted\*/i, /\*Schedule visit ulang\*/i, /\*Waiting List\*/i],
+    "✅": [/\*Noted\*/i, /\*Solved\*/i],
+    "✍🏻": [/\*Schedule visit ulang\*/i, /\*Waiting List\*/i, /\*Remark\*/i],
     "👀": [/\*BOT Error\*/i, /Sekretaris sedang memproses/i],
   };
 
@@ -234,9 +235,9 @@ async function checkGroupMessages(groupName, groupId) {
               phone: formattedGroupId,
               isGroup: true,
               message:
-                "Mode closed diaktifkan. Laporan tidak akan diproses.\n> " +
+                "Closed. Laporan tidak akan diproses.\n> " +
                 commandProcessingTime +
-                " s waktu bot dibutuhkan",
+                " s waktu dibutuhkan",
             },
             { headers: HEADERS }
           );
@@ -259,9 +260,9 @@ async function checkGroupMessages(groupName, groupId) {
               phone: formattedGroupId,
               isGroup: true,
               message:
-                "Mode open diaktifkan. Laporan akan diproses seperti biasa.\n> " +
+                "Open. Laporan akan diproses seperti biasa.\n> " +
                 commandProcessingTime +
-                " s waktu bot dibutuhkan",
+                " s waktu dibutuhkan",
             },
             { headers: HEADERS }
           );
@@ -277,7 +278,7 @@ async function checkGroupMessages(groupName, groupId) {
         senderName !== "denyFebn"
           ? isMentioned
           : messageContent?.includes("cek hari ini") ||
-            messageContent?.startsWith("done") ||
+            messageContent?.startsWith("done") || messageContent?.startsWith("remark") ||
             /^\d{5}/.test(messageContent);
       if (!shouldProcess) continue;
 
@@ -302,7 +303,7 @@ async function checkGroupMessages(groupName, groupId) {
             if (senderName !== "denyFebn") {
               // Semua pesan dari non-denyFebn di-bypass
               if (/\b\d{5}\b/.test(messageContent)) {
-                gasMessage = "*CLOSED* \n> Laporan tidak diproses karena Gform oriented. \n> Input by BOT sementara dimatikan sampai waktu yang belum ditentukan.";
+                gasMessage = "*CLOSED* \n> Laporan tidak diproses karena Gform oriented. \n> Input sementara dimatikan sampai waktu yang belum ditentukan.";
               } else {
                 await reactToMessage(message.id, "👀");
                 continue;
@@ -310,7 +311,7 @@ async function checkGroupMessages(groupName, groupId) {
             } else {
               // Jika sender adalah denyFebn, cek apakah pesan mengandung "cek hari ini" atau diawali "done"
               const lowerMsg = messageContent.toLowerCase();
-              if (lowerMsg.includes("cek hari ini") || lowerMsg.startsWith("done")) {
+              if (lowerMsg.includes("cek hari ini") || lowerMsg.startsWith("done") || lowerMsg.startsWith("remark")) {
                 const gasResponse = await axios.post(
                   GOOGLE_APPS_SCRIPT_URL,
                   {
@@ -351,7 +352,7 @@ async function checkGroupMessages(groupName, groupId) {
             { headers: HEADERS }
           );
           groupMembers = groupMembersResp.data?.response || [];
-          console.log("✅ Members in group:", groupMembers.map((m) => m.id?._serialized));
+          // console.log("✅ Members in group:", groupMembers.map((m) => m.id?._serialized));
         } catch (err) {
           console.warn("⚠️ Gagal ambil member grup:", err.message);
         }
@@ -375,7 +376,7 @@ async function checkGroupMessages(groupName, groupId) {
 
         // Hitung waktu processing pesan (dalam detik)
         const processingTime = ((Date.now() - messageStartTime) / 1000).toFixed(1);
-        finalMessage = finalMessage + "\n> " + processingTime + " s waktu bot dibutuhkan";
+        finalMessage = finalMessage + "\n> " + processingTime + " s waktu dibutuhkan";
 
         await axios.post(
           `${WPP_SERVER_URL}/${SESSION_NAME}/send-mentioned-reply`,
@@ -406,7 +407,7 @@ async function checkGroupMessages(groupName, groupId) {
           {
             phone: formattedGroupId,
             isGroup: true,
-            message: `❌ Gagal memproses pesan: ${error.message}\n> ${errorProcessingTime} s waktu bot dibutuhkan`,
+            message: `❌ Gagal memproses pesan: ${error.message}\n> ${errorProcessingTime} s waktu dibutuhkan`,
             messageId: message.id,
           },
           { headers: HEADERS }
