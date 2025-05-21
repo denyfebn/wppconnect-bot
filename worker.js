@@ -60,7 +60,7 @@ async function buildInitReport() {
     "----",
     "Subject: Hidden",
     "----",
-    "denyFebn Projects v25",
+    "denyFebn Projects v25.2.1.1-beta",
     "Status: denyfebn.com/status",
   ].join("\n");
 }
