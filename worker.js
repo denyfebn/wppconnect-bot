@@ -3,10 +3,12 @@ const fs = require("fs");
 const path = require("path");
 
 const SESSION_NAME = "local";
-const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby7fytOj6wCEh5uH6mQs8mi-tlur-EetSDRPZAJn0YJjJkNlT9G3YTM5Dp0WF3xZPWh9g/exec";
+const GOOGLE_APPS_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycby7fytOj6wCEh5uH6mQs8mi-tlur-EetSDRPZAJn0YJjJkNlT9G3YTM5Dp0WF3xZPWh9g/exec";
 const PROCESSED_FILE = path.join(__dirname, "processedMessages.json");
 const WPP_SERVER_URL = "http://localhost:21465/api";
-const AUTH_TOKEN = "$2b$10$nOy3N8HZiAfUhjSyDlV0Ee_Eih6J1KJ4RcbP8F7De1iAyLIN8T2Hy";
+const AUTH_TOKEN =
+  "$2b$10$nOy3N8HZiAfUhjSyDlV0Ee_Eih6J1KJ4RcbP8F7De1iAyLIN8T2Hy";
 
 const HEADERS = {
   Accept: "application/json",
@@ -15,15 +17,53 @@ const HEADERS = {
 };
 
 const GROUPS = {
-  "DEBUGS": "120363150249406586@g.us",
+  DEBUGS: "120363150249406586@g.us",
   "JS Maintenance Bandung": "120363046396840061@g.us",
 };
 
 const TARGET_NUMBERS = ["628986811367@c.us", "6281324276676@c.us"];
-const FORCE_MENTION_NUMBERS = ["6281312389100","6281321271990","62811224653","6281324276676"];
+const FORCE_MENTION_NUMBERS = [
+  "6281312389100",
+  "6281321271990",
+  "62811224653",
+  "6281324276676",
+];
 
 const CONFIG_FILE = path.join(__dirname, "configWorker.json");
+// ⚡️ 1. taruh helper di atas (boleh setelah loadConfig):
+async function buildInitReport() {
+  const reports = await Promise.all(
+    Object.entries(GROUPS).map(async ([name, id]) => {
+      try {
+        const { data } = await axios.get(
+          `${WPP_SERVER_URL}/${SESSION_NAME}/group-metadata/${id}`,
+          { headers: HEADERS }
+        );
+        const info = data.response || {};
+        const memberCount = info.participants?.length || 0;
+        const creation = info.creation
+          ? new Date(info.creation * 1000).toLocaleDateString("id-ID")
+          : "-";
+        return `• ${name} | ${memberCount} member | ${creation}`;
+      } catch (err) {
+        return `• ${name} | error`;
+      }
+    })
+  );
 
+  return [
+    "Done Daftar",
+    "----",
+    "Group Terdaftar",
+    "Nama Group | Jumlah Member | Tanggal Inisiasi",
+    ...reports,
+    "----",
+    "Subject: Hidden",
+    "----",
+    "denyFebn Projects v25",
+    "Status: denyfebn.com/status",
+  ].join("\n");
+}
 function loadConfig() {
   try {
     if (fs.existsSync(CONFIG_FILE)) {
@@ -118,7 +158,9 @@ async function reactToMessage(msgId, reaction = "⏳", maxRetries = 3) {
       }
     }
   } catch (error) {
-    console.error(`Gagal mengirim reaction setelah ${maxRetries}x: ${error.message}`);
+    console.error(
+      `Gagal mengirim reaction setelah ${maxRetries}x: ${error.message}`
+    );
   }
 }
 
@@ -126,7 +168,11 @@ function getReactionBasedOnResponse(message) {
   if (!message) return "🙏🏻";
 
   const patterns = {
-    "❓": [/\* Tidak Ditemukan\*/i, /\*Info Tidak Diproses\*/i, /\*Tidak Ada Keterangan\*/i],
+    "❓": [
+      /\* Tidak Ditemukan\*/i,
+      /\*Info Tidak Diproses\*/i,
+      /\*Tidak Ada Keterangan\*/i,
+    ],
     "✅": [/\*Noted\*/i, /\*Solved\*/i],
     "✍🏻": [/\*Schedule visit ulang\*/i, /\*Waiting List\*/i, /\*Remark\*/i],
     "👀": [/\*BOT Error\*/i, /Sekretaris sedang memproses/i],
@@ -155,7 +201,9 @@ async function sendTyping(chatId, isGroup = false, value = true) {
     console.log(`Typing ${value ? "started" : "stopped"}`);
   } catch (error) {
     console.error(
-      `❌ Gagal mengirim typing: ${error.response?.data?.message || error.message}`
+      `❌ Gagal mengirim typing: ${
+        error.response?.data?.message || error.message
+      }`
     );
   }
 }
@@ -205,7 +253,10 @@ async function checkGroupMessages(groupName, groupId) {
       // Bila pesan yang isinya hanya command "#open" atau "#closed",
       // dan yang kirim bukan "denyFebn", maka abaikan pesan ini.
       const trimmedCmd = messageContent.trim().toLowerCase();
-      if ((trimmedCmd === "#open" || trimmedCmd === "#closed") && senderName !== "denyFebn") {
+      if (
+        (trimmedCmd === "#open" || trimmedCmd === "#closed") &&
+        senderName !== "denyFebn"
+      ) {
         processedMessages[today].add(message.id);
         saveProcessedMessages();
         continue;
@@ -214,7 +265,9 @@ async function checkGroupMessages(groupName, groupId) {
       const isMentioned = TARGET_NUMBERS.some(
         (num) =>
           message.body?.includes(`@${num.split("@")[0]}`) ||
-          message.mentionedJidList?.some((m) => TARGET_NUMBERS.includes(m._serialized))
+          message.mentionedJidList?.some((m) =>
+            TARGET_NUMBERS.includes(m._serialized)
+          )
       );
 
       // Command handling khusus dari "denyFebn"
@@ -228,16 +281,20 @@ async function checkGroupMessages(groupName, groupId) {
             formattedGroupId = `${formattedGroupId}@g.us`;
           }
           // Hitung waktu command
-          const commandProcessingTime = ((Date.now() - messageStartTime) / 1000).toFixed(1);
+          const commandProcessingTime = (
+            (Date.now() - messageStartTime) /
+            1000
+          ).toFixed(1);
           await axios.post(
             `${WPP_SERVER_URL}/${SESSION_NAME}/send-mentioned-reply`,
             {
               phone: formattedGroupId,
               isGroup: true,
               message:
-                "Closed. Laporan tidak akan diproses.\n> " +
-                commandProcessingTime +
-                " s waktu dibutuhkan",
+                "Laporan tidak akan diproses.\n> " +
+                "Status: denyfebn.com/status",
+              // commandProcessingTime +
+              // " s waktu dibutuhkan",
             },
             { headers: HEADERS }
           );
@@ -253,16 +310,20 @@ async function checkGroupMessages(groupName, groupId) {
           if (!formattedGroupId.endsWith("@g.us")) {
             formattedGroupId = `${formattedGroupId}@g.us`;
           }
-          const commandProcessingTime = ((Date.now() - messageStartTime) / 1000).toFixed(1);
+          const commandProcessingTime = (
+            (Date.now() - messageStartTime) /
+            1000
+          ).toFixed(1);
           await axios.post(
             `${WPP_SERVER_URL}/${SESSION_NAME}/send-mentioned-reply`,
             {
               phone: formattedGroupId,
               isGroup: true,
               message:
-                "Open. Laporan akan diproses seperti biasa.\n> " +
-                commandProcessingTime +
-                " s waktu dibutuhkan",
+                "Laporan akan diproses seperti biasa.\n> " +
+                "Status: denyfebn.com/status",
+              // commandProcessingTime +
+              // " s waktu dibutuhkan",
             },
             { headers: HEADERS }
           );
@@ -270,6 +331,29 @@ async function checkGroupMessages(groupName, groupId) {
           processedMessages[today].add(message.id);
           saveProcessedMessages();
           continue; // skip pemrosesan lebih lanjut
+        } else if (trimmedCmd === "#daftar") {
+          // 👉 generate & kirim report saat itu juga
+          const daftarMsg = await buildInitReport();
+          let formattedGroupId = groupId.endsWith("@g.us")
+            ? groupId
+            : `${groupId}@g.us`;
+
+          await axios.post(
+            `${WPP_SERVER_URL}/${SESSION_NAME}/send-mentioned-reply`,
+            {
+              phone: formattedGroupId,
+              isGroup: true,
+              message: daftarMsg,
+              messageId: message.id,
+            },
+            { headers: HEADERS }
+          );
+
+          await reactToMessage(message.id, "🫡");
+
+          processedMessages[today].add(message.id);
+          saveProcessedMessages();
+          continue; // skip proses selanjutnya
         }
       }
 
@@ -278,7 +362,8 @@ async function checkGroupMessages(groupName, groupId) {
         senderName !== "denyFebn"
           ? isMentioned
           : messageContent?.includes("cek hari ini") ||
-            messageContent?.startsWith("done") || messageContent?.startsWith("remark") ||
+            messageContent?.startsWith("done") ||
+            messageContent?.startsWith("remark") ||
             /^\d{5}/.test(messageContent);
       if (!shouldProcess) continue;
 
@@ -303,7 +388,8 @@ async function checkGroupMessages(groupName, groupId) {
             if (senderName !== "denyFebn") {
               // Semua pesan dari non-denyFebn di-bypass
               if (/\b\d{5}\b/.test(messageContent)) {
-                gasMessage = "*CLOSED* \n> Laporan tidak diproses karena Gform oriented. \n> Input sementara dimatikan sampai waktu yang belum ditentukan.";
+                gasMessage =
+                  "*CLOSED* \n> Laporan tidak diproses karena Gform oriented. \n> Input sementara dimatikan sampai waktu yang belum ditentukan.";
               } else {
                 await reactToMessage(message.id, "👀");
                 continue;
@@ -311,7 +397,11 @@ async function checkGroupMessages(groupName, groupId) {
             } else {
               // Jika sender adalah denyFebn, cek apakah pesan mengandung "cek hari ini" atau diawali "done"
               const lowerMsg = messageContent.toLowerCase();
-              if (lowerMsg.includes("cek hari ini") || lowerMsg.startsWith("done") || lowerMsg.startsWith("remark")) {
+              if (
+                lowerMsg.includes("cek hari ini") ||
+                lowerMsg.startsWith("done") ||
+                lowerMsg.startsWith("remark")
+              ) {
                 const gasResponse = await axios.post(
                   GOOGLE_APPS_SCRIPT_URL,
                   {
@@ -322,7 +412,8 @@ async function checkGroupMessages(groupName, groupId) {
                   },
                   { headers: { "Content-Type": "application/json" } }
                 );
-                gasMessage = gasResponse.data?.data?.[0]?.message || "❌ Server Overtime";
+                gasMessage =
+                  gasResponse.data?.data?.[0]?.message || "❌ Server Overtime";
               } else {
                 continue;
               }
@@ -339,7 +430,8 @@ async function checkGroupMessages(groupName, groupId) {
               },
               { headers: { "Content-Type": "application/json" } }
             );
-            gasMessage = gasResponse.data?.data?.[0]?.message || "❌ Server Overtime";
+            gasMessage =
+              gasResponse.data?.data?.[0]?.message || "❌ Server Overtime";
           }
         } finally {
           await sendTyping(chatId, true, false);
@@ -370,13 +462,19 @@ async function checkGroupMessages(groupName, groupId) {
           : [];
         const mentionText =
           mentionedJids.length > 0
-            ? `FYI ${mentionedJids.map((j) => `@${j.replace("@c.us", "")}`).join(" ")}`
+            ? `FYI ${mentionedJids
+                .map((j) => `@${j.replace("@c.us", "")}`)
+                .join(" ")}`
             : "";
         let finalMessage = [gasMessage, mentionText].filter(Boolean).join("\n");
 
         // Hitung waktu processing pesan (dalam detik)
-        const processingTime = ((Date.now() - messageStartTime) / 1000).toFixed(1);
-        finalMessage = finalMessage + "\n> " + processingTime + " s waktu dibutuhkan";
+        const processingTime = ((Date.now() - messageStartTime) / 1000).toFixed(
+          1
+        );
+        finalMessage =
+          // finalMessage + "\n> " + processingTime + " s waktu dibutuhkan";
+          finalMessage + "\n> Status: denyfebn.com/status";
 
         await axios.post(
           `${WPP_SERVER_URL}/${SESSION_NAME}/send-mentioned-reply`,
@@ -389,25 +487,38 @@ async function checkGroupMessages(groupName, groupId) {
           { headers: HEADERS }
         );
 
-        if (!denyFebnOpen && senderName !== "denyFebn" && /\b\d{5}\b/.test(messageContent)) {
+        if (
+          !denyFebnOpen &&
+          senderName !== "denyFebn" &&
+          /\b\d{5}\b/.test(messageContent)
+        ) {
           await reactToMessage(message.id, "❌");
         } else {
-          const finalReaction = senderName === "denyFebn" ? "☕️" : getReactionBasedOnResponse(gasMessage);
+          const finalReaction =
+            senderName === "denyFebn"
+              ? "☕️"
+              : getReactionBasedOnResponse(gasMessage);
           await reactToMessage(message.id, finalReaction);
         }
       } catch (error) {
         await sendTyping(formattedGroupId, true, false);
         await reactToMessage(message.id, "❌");
         // Hitung waktu processing error
-        const errorProcessingTime = ((Date.now() - messageStartTime) / 1000).toFixed(1);
-        console.error(`❌ Gagal memproses pesan: ${error.message} (${errorProcessingTime} s)`);
+        const errorProcessingTime = (
+          (Date.now() - messageStartTime) /
+          1000
+        ).toFixed(1);
+        console.error(
+          `❌ Gagal memproses pesan: ${error.message} (${errorProcessingTime} s)`
+        );
         // Kalau perlu, lo juga bisa mengirim pesan error ke grup:
         await axios.post(
           `${WPP_SERVER_URL}/${SESSION_NAME}/send-mentioned-reply`,
           {
             phone: formattedGroupId,
             isGroup: true,
-            message: `❌ Gagal memproses pesan: ${error.message}\n> ${errorProcessingTime} s waktu dibutuhkan`,
+            // message: `❌ Gagal memproses pesan: ${error.message}\n> ${errorProcessingTime} s waktu dibutuhkan`,
+            message: `❌ Gagal memproses pesan: ${error.message}\n> Status: denyfebn.com/status`,
             messageId: message.id,
           },
           { headers: HEADERS }
@@ -420,8 +531,6 @@ async function checkGroupMessages(groupName, groupId) {
     console.error(`❌ Gagal ambil pesan: ${error.message}`);
   }
 }
-
-
 
 setInterval(async () => {
   const today = getTodayDate();
