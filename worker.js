@@ -7,8 +7,7 @@ const GOOGLE_APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycby7fytOj6wCEh5uH6mQs8mi-tlur-EetSDRPZAJn0YJjJkNlT9G3YTM5Dp0WF3xZPWh9g/exec";
 const PROCESSED_FILE = path.join(__dirname, "processedMessages.json");
 const WPP_SERVER_URL = "http://localhost:21465/api";
-const AUTH_TOKEN =
-  "$2b$10$nOy3N8HZiAfUhjSyDlV0Ee_Eih6J1KJ4RcbP8F7De1iAyLIN8T2Hy";
+const AUTH_TOKEN = "$2b$10$tyAKZjhLx3EakIOUQnmu..CKJqKGUSAOcfBs89QdpchxDAs.LJwoG";
 
 const HEADERS = {
   Accept: "application/json",
@@ -30,40 +29,54 @@ const FORCE_MENTION_NUMBERS = [
 ];
 
 const CONFIG_FILE = path.join(__dirname, "configWorker.json");
-// ⚡️ 1. taruh helper di atas (boleh setelah loadConfig):
-async function buildInitReport() {
-  const reports = await Promise.all(
-    Object.entries(GROUPS).map(async ([name, id]) => {
-      try {
-        const { data } = await axios.get(
-          `${WPP_SERVER_URL}/${SESSION_NAME}/group-metadata/${id}`,
-          { headers: HEADERS }
-        );
-        const info = data.response || {};
-        const memberCount = info.participants?.length || 0;
-        const creation = info.creation
-          ? new Date(info.creation * 1000).toLocaleDateString("id-ID")
-          : "-";
-        return `• ${name} | ${memberCount} member | ${creation}`;
-      } catch (err) {
-        return `• ${name} | error`;
-      }
-    })
-  );
 
+async function buildInitReport(groupName, rawId) {
+  const todayStr = new Date().toLocaleDateString("id-ID");
+  const groupId = rawId.endsWith("@g.us") ? rawId : `${rawId}@g.us`;
+
+  let memberCount = 0;
+  let creation = todayStr; // fallback default
+
+  try {
+    // 1️⃣ Ambil jumlah member
+    const { data: mem } = await axios.get(
+      `${WPP_SERVER_URL}/${SESSION_NAME}/group-members/${groupId}`,
+      { headers: HEADERS, timeout: 8000 }
+    );
+    memberCount = mem.response?.length ?? 0;
+  } catch (err) {
+    console.error(`⚠️  member fetch error (${groupName}):`, err.message);
+  }
+
+  try {
+    // 2️⃣ Ambil tanggal pembuatan (opsional)
+    const { data: chat } = await axios.get(
+      `${WPP_SERVER_URL}/${SESSION_NAME}/chat-by-id/${groupId}`,
+      { headers: HEADERS, params: { isGroup: "true" }, timeout: 8000 }
+    );
+    const ts = chat.response?.groupMetadata?.creation;
+    if (ts) {
+      creation = new Date(ts * 1000).toLocaleDateString("id-ID");
+    }
+  } catch (err) {
+    /* tidak fatal, pakai todayStr */
+  }
+
+  // susun message final (cuma 1 grup)
   return [
-    "Done Daftar",
+    "Done",
     "----",
     "Group Terdaftar",
     "Nama Group | Jumlah Member | Tanggal Inisiasi",
-    ...reports,
+    `• ${groupName} | ${memberCount} member | ${creation}`,
     "----",
     "Subject: Hidden",
     "----",
-    "denyFebn Projects v25.2.1.1-beta",
-    "Status: denyfebn.com/status",
+    "> denyFebn Projects v25.2.1.1-beta",
+    "> Status: denyfebn.com/status",
   ].join("\n");
 }
+
 function loadConfig() {
   try {
     if (fs.existsSync(CONFIG_FILE)) {
@@ -331,31 +344,51 @@ async function checkGroupMessages(groupName, groupId) {
           processedMessages[today].add(message.id);
           saveProcessedMessages();
           continue; // skip pemrosesan lebih lanjut
-        } else if (trimmedCmd === "#daftar") {
-          // 👉 generate & kirim report saat itu juga
-          const daftarMsg = await buildInitReport();
-          let formattedGroupId = groupId.endsWith("@g.us")
-            ? groupId
-            : `${groupId}@g.us`;
+        }else if (trimmedCmd === "#daftar") {
+  // indikator proses
+  await reactToMessage(message.id, "🫡");
 
-          await axios.post(
-            `${WPP_SERVER_URL}/${SESSION_NAME}/send-mentioned-reply`,
-            {
-              phone: formattedGroupId,
-              isGroup: true,
-              message: daftarMsg,
-              messageId: message.id,
-            },
-            { headers: HEADERS }
-          );
+  let daftarMsg;
+  try {
+    daftarMsg = await buildInitReport(groupName, groupId);
+  } catch (e) {
+    console.error("buildInitReport fail:", e.message);
+    daftarMsg = `❌ Gagal bikin report (${e.message})\nStatus: denyfebn.com/status`;
+  }
 
-          await reactToMessage(message.id, "🫡");
+  const formattedGroupId = groupId.endsWith("@g.us")
+    ? groupId
+    : `${groupId}@g.us`;
 
-          processedMessages[today].add(message.id);
-          saveProcessedMessages();
-          continue; // skip proses selanjutnya
-        }
-      }
+  try {
+    await axios.post(
+      `${WPP_SERVER_URL}/${SESSION_NAME}/send-mentioned-reply`,
+      {
+        phone: formattedGroupId,
+        isGroup: true,
+        message: daftarMsg,
+        messageId: message.id,
+      },
+      { headers: HEADERS }
+    );
+
+    // reaction akhir sesuai pola
+    const finalReaction =
+      senderName === "denyFebn"
+        ? "☕️"
+        : getReactionBasedOnResponse(daftarMsg);
+
+    await reactToMessage(message.id, finalReaction);
+  } catch (err) {
+    console.error("❌ kirim daftarMsg error:", err.message);
+    await reactToMessage(message.id, "❌");
+  }
+
+  processedMessages[today].add(message.id);
+  saveProcessedMessages();
+  continue; // skip sisa handler
+}
+}
 
       // Untuk pesan non-command, tentukan apakah perlu diproses
       const shouldProcess =
