@@ -188,7 +188,7 @@ function getReactionBasedOnResponse(message) {
       /\*Tidak Ada Keterangan\*/i,
     ],
     "✅": [/\*Noted\*/i],
-    "💙":[/\*Solved\*/i],
+    "👍🏻":[/\*Solved\*/i],
     "✍🏻": [/\*Schedule visit ulang\*/i, /\*Waiting List\*/i, /\*Remark\*/i],
     "👀": [/\*BOT Error\*/i, /Sekretaris sedang memproses/i],
   };
