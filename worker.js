@@ -7,7 +7,7 @@ const GOOGLE_APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycby7fytOj6wCEh5uH6mQs8mi-tlur-EetSDRPZAJn0YJjJkNlT9G3YTM5Dp0WF3xZPWh9g/exec";
 const PROCESSED_FILE = path.join(__dirname, "processedMessages.json");
 const WPP_SERVER_URL = "http://localhost:21465/api";
-const AUTH_TOKEN = "$2b$10$tyAKZjhLx3EakIOUQnmu..CKJqKGUSAOcfBs89QdpchxDAs.LJwoG";
+const AUTH_TOKEN = "$2b$10$W0bB08yp6fTrHPeuOeXRt.vdFeBrvlDNab2mISMnpaKy9HCG3b9Fq";
 
 const HEADERS = {
   Accept: "application/json",
@@ -24,7 +24,7 @@ const TARGET_NUMBERS = ["628986811367@c.us", "6281324276676@c.us"];
 const FORCE_MENTION_NUMBERS = [
   "6281312389100",
   "6281321271990",
-  "62811224653",
+  "6287736661213",
   "6281324276676",
 ];
 
@@ -187,7 +187,7 @@ function getReactionBasedOnResponse(message) {
       /\*Tidak Ada Keterangan\*/i,
     ],
     "✅": [/\*Noted\*/i],
-    "💙":[/\*Solved/i],
+    "💙":[/\*Solved\*/i],
     "✍🏻": [/\*Schedule visit ulang\*/i, /\*Waiting List\*/i, /\*Remark\*/i],
     "👀": [/\*BOT Error\*/i, /Sekretaris sedang memproses/i],
   };
@@ -229,7 +229,7 @@ async function checkGroupMessages(groupName, groupId) {
       {
         params: {
           isGroup: "true",
-          includeMe: "false",
+          includeMe: "true",
           includeNotifications: "false",
         },
         headers: HEADERS,
