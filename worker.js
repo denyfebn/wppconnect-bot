@@ -7,7 +7,7 @@ const GOOGLE_APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycby7fytOj6wCEh5uH6mQs8mi-tlur-EetSDRPZAJn0YJjJkNlT9G3YTM5Dp0WF3xZPWh9g/exec";
 const PROCESSED_FILE = path.join(__dirname, "processedMessages.json");
 const WPP_SERVER_URL = "http://localhost:21465/api";
-const AUTH_TOKEN = "$2b$10$W0bB08yp6fTrHPeuOeXRt.vdFeBrvlDNab2mISMnpaKy9HCG3b9Fq";
+const AUTH_TOKEN = "$2b$10$h9tMHl2JWTo0GDyEmsHcMuqrYzDasJQoTGAv1JkEbIn05aWkeeLI2";
 
 const HEADERS = {
   Accept: "application/json",
@@ -20,13 +20,13 @@ const GROUPS = {
   "JS Maintenance Bandung": "120363046396840061@g.us",
 };
 
-const TARGET_NUMBERS = ["628986811367@c.us", "6281324276676@c.us"];
+const TARGET_NUMBERS = ["628986811367@c.us", "164278304784437@lid"];
 const FORCE_MENTION_NUMBERS = [
-  "6281312389100",
-  "6281321271990",
-  "6287736661213",
-  "62811224653",
-  "6281324276676",
+ "23038305243363", // Rangga 
+ "64420331950215", // Asep
+ "123793859154126", // Dida
+ "62811224653",
+"6281324276676@c.us",
 ];
 
 const CONFIG_FILE = path.join(__dirname, "configWorker.json");
@@ -149,7 +149,7 @@ async function deleteOldChats() {
 }
 
 async function reactToMessage(msgId, reaction = "⏳", maxRetries = 3) {
-  const validReactions = ["⏳", "🫡", "✍🏻", "✅", "❌", "❓", "👀", "🙏🏻", "☕️"];
+  const validReactions = ["⏳", "🫡", "✍🏻", "✅", "❌", "❓", "👀", "🙏🏻", "☕️","👍🏻"];
 
   try {
     if (!validReactions.includes(reaction)) {
@@ -202,7 +202,7 @@ function getReactionBasedOnResponse(message) {
   return "🙏🏻";
 }
 
-async function sendTyping(chatId, isGroup = false, value = true) {
+async function sendTyping(chatId, isGroup = true, value = true) {
   try {
     await axios.post(
       `${WPP_SERVER_URL}/${SESSION_NAME}/typing`,
@@ -487,18 +487,18 @@ async function checkGroupMessages(groupName, groupId) {
         const shouldAppendFYI = /\*Noted\*/i.test(gasMessage);
         const mentionedJids = shouldAppendFYI
           ? FORCE_MENTION_NUMBERS.filter((nomor) => {
-              const jid = `${nomor}@c.us`;
+              const jid = `${nomor}@lid`;
               return (
                 nomor !== senderNumber &&
                 !messageContent.includes(`@${nomor}`) &&
                 groupMembers.some((m) => m.id?._serialized === jid)
               );
-            }).map((nomor) => `${nomor}@c.us`)
+            }).map((nomor) => `${nomor}@lid`)
           : [];
         const mentionText =
           mentionedJids.length > 0
             ? `FYI ${mentionedJids
-                .map((j) => `@${j.replace("@c.us", "")}`)
+                .map((j) => `@${j.replace("@lid", "")}`)
                 .join(" ")}`
             : "";
         let finalMessage = [gasMessage, mentionText].filter(Boolean).join("\n");
@@ -509,7 +509,7 @@ async function checkGroupMessages(groupName, groupId) {
         );
         finalMessage =
           // finalMessage + "\n> " + processingTime + " s waktu dibutuhkan";
-          finalMessage + "\n> Status: denyfebn.com/status";
+          finalMessage + "\n> Contact: 081324276676 (Deny Febrian)\n> Status: denyfebn.com/status";
 
         await axios.post(
           `${WPP_SERVER_URL}/${SESSION_NAME}/send-mentioned-reply`,
@@ -553,7 +553,7 @@ async function checkGroupMessages(groupName, groupId) {
             phone: formattedGroupId,
             isGroup: true,
             // message: `❌ Gagal memproses pesan: ${error.message}\n> ${errorProcessingTime} s waktu dibutuhkan`,
-            message: `❌ Gagal memproses pesan: ${error.message}\n> Status: denyfebn.com/status`,
+            message: `❌ Gagal memproses pesan: ${error.message}\n> Contact: 081324276676 (Deny Febrian)\n> Status: denyfebn.com/status`,
             messageId: message.id,
           },
           { headers: HEADERS }
@@ -563,8 +563,9 @@ async function checkGroupMessages(groupName, groupId) {
       }
     }
   } catch (error) {
-    console.error(`❌ Gagal ambil pesan: ${error.message}`);
-  }
+  const m = error.response?.data || error.message;
+  console.error(`❌ Gagal ambil pesan:`, m);
+}
 }
 
 setInterval(async () => {

@@ -6,7 +6,7 @@ const path = require("path");
 const SESSION_NAME = "local";
 const PROCESSED_FILE = path.join(__dirname, "processedMessages.json");
 const WPP_SERVER_URL = "http://localhost:21465/api";
-const AUTH_TOKEN = "$2b$10$tyAKZjhLx3EakIOUQnmu..CKJqKGUSAOcfBs89QdpchxDAs.LJwoG";
+const AUTH_TOKEN = "$2b$10$h9tMHl2JWTo0GDyEmsHcMuqrYzDasJQoTGAv1JkEbIn05aWkeeLI2";
 
 const HEADERS = {
     "Accept": "application/json",
